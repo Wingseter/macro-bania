@@ -1,23 +1,21 @@
-#include <iostream>
-#include <vector>
+#include <array>
 #include <algorithm>
+#include <cstdio>
 
 int main() {
-    std::vector<int> numbers = {5, 3, 8, 1, 9, 2, 7, 4, 6};
+    std::array<int, 9> numbers = {5, 3, 8, 1, 9, 2, 7, 4, 6};
 
-    std::cout << "Before sorting: ";
-    for (int n : numbers) {
-        std::cout << n << " ";
+    std::puts("Before sorting:");
+    for (const int n : numbers) {
+        std::printf("%d ", n);
     }
-    std::cout << std::endl;
+    std::putchar('\n');
 
     std::sort(numbers.begin(), numbers.end());
 
-    std::cout << "After sorting:  ";
-    for (int n : numbers) {
-        std::cout << n << " ";
+    std::puts("After sorting:");
+    for (const int n : numbers) {
+        std::printf("%d ", n);
     }
-    std::cout << std::endl;
-
-    return 0;
+    std::putchar('\n');
 }
