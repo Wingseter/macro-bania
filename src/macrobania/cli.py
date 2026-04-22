@@ -319,8 +319,6 @@ def play(
         raise click.ClickException(f"recording directory not found: {rec_dir}")
 
     mode_l = mode.lower()
-    if mode_l == "c":
-        raise click.ClickException("mode 'c' not implemented yet (Phase 6)")
 
     injector = make_injector(dry_run=dry_run)
     failsafe = FailSafe()
@@ -350,7 +348,7 @@ def play(
             f"dry_run={dry_run} verify={bool(verifier)}"
         )
         result = player_a.play()
-    else:
+    elif mode_l == "b":
         from macrobania.agent.grounder import Grounder
         from macrobania.perception import OCREngine, UIASnapshotter
         from macrobania.player import GroundedPlayer
@@ -378,6 +376,10 @@ def play(
             f"verify={bool(verifier)}"
         )
         result = player_b.play()
+    else:  # mode_l == "c"
+        raise click.ClickException(
+            "Mode C is goal-driven; use `macrobania autonomous --goal ...` instead"
+        )
 
     success = sum(1 for o in result.outcomes if o.status == "success")
     status = "[green]SUCCESS[/green]" if not result.failed else "[red]FAILED[/red]"
@@ -400,6 +402,92 @@ def gui() -> None:
     from macrobania.ui import run_gui
 
     sys.exit(run_gui())
+
+
+@main.command(help="자율 모드 — 녹화 없이 자연어 goal로 실행 (Mode C, Phase 6)")
+@click.option("--goal", required=True, help="자연어 목표 (예: '웹 페이지에서 일일 퀘스트 수령')")
+@click.option("--max-steps", default=20, type=click.IntRange(1, 200))
+@click.option("--dry-run/--execute", default=True)
+@click.option("--planner-model", default=None, help="Planner 모델 override")
+@click.option("--grounder-model", default=None, help="Grounder 모델 override")
+def autonomous(
+    goal: str,
+    max_steps: int,
+    dry_run: bool,
+    planner_model: str | None,
+    grounder_model: str | None,
+) -> None:
+    from macrobania.agent.grounder import Grounder
+    from macrobania.agent.planner import Planner
+    from macrobania.inputio import FailSafe, make_injector
+    from macrobania.perception import OCREngine, UIASnapshotter
+    from macrobania.player import AutonomousPlayer, PlaySession
+
+    try:
+        planner = Planner.from_env()
+        if planner_model:
+            planner.model = planner_model
+    except Exception as e:
+        raise click.ClickException(f"Planner init failed: {e}") from e
+    try:
+        grounder = Grounder.from_env()
+        if grounder_model:
+            grounder.model = grounder_model
+    except Exception as e:
+        raise click.ClickException(f"Grounder init failed: {e}") from e
+
+    injector = make_injector(dry_run=dry_run)
+    failsafe = FailSafe()
+    # Mode C는 녹화 없이 실행되므로 recording_id는 합성 문자열
+    synth_rec = "rec_autonomous_goal"
+    from datetime import datetime
+
+    from macrobania.models import Platform
+    from macrobania.recording.writer import RecordingWriter
+
+    db = get_db()
+    conn = db.connect()
+    row = conn.execute(
+        "SELECT id FROM recordings WHERE id = ?", (synth_rec,)
+    ).fetchone()
+    if row is None:
+        # 껍데기 Recording row를 만들어 FK 충돌 회피
+        _ = RecordingWriter(
+            db=db,
+            rec_dir=get_settings().recordings_dir / synth_rec,
+            rec_id=synth_rec,
+            task_name="autonomous",
+            platform=Platform(os="autonomous", resolution=(1, 1)),
+        )
+        _.create()
+        _.finalize()
+        _ = datetime.now  # 참조 유지
+    session = PlaySession(
+        db=db, recording_id=synth_rec, mode="c",
+        injector=injector, failsafe=failsafe,
+    )
+    uia = UIASnapshotter()
+    ocr = OCREngine()
+    player = AutonomousPlayer(
+        session=session,
+        planner=planner,
+        grounder=grounder,
+        goal=goal,
+        uia=uia if uia.available() else None,
+        ocr=ocr if ocr.available() else None,
+        max_steps=max_steps,
+    )
+    _console.print(
+        f"[green]autonomous[/green] goal={goal!r} max_steps={max_steps} dry_run={dry_run}"
+    )
+    result = player.play()
+    status = "[green]SUCCESS[/green]" if not result.failed else "[red]FAILED[/red]"
+    success = sum(1 for o in result.outcomes if o.status == "success")
+    _console.print(
+        f"{status} session={result.session_id} steps={len(result.outcomes)} "
+        f"success={success} "
+        + (f"reason={result.failure_reason!r}" if result.failed else "")
+    )
 
 
 if __name__ == "__main__":

@@ -647,8 +647,8 @@ OCR top-5: 일일퀘스트, 로그아웃, 설정, ...
 | **P3 Mode A Faithful** | 1주 | ✅ 코어 완료 | DryRun/Real injector, Verifier, FaithfulPlayer, PlaySession(+audit_log), CLI play --mode a | 97 tests (injector/verifier/mode_a 통합 검증) |
 | **P4 Mode B Grounded ★** | 3주 | ✅ 코어 완료 | perception.matcher (UIA+OCR 감축), GroundingCache (pixel-diff), GroundedPlayer, CLI play --mode b | 115 tests — UIA/OCR skip Grounder, fallback to VLM, cache reuse 검증 |
 | **P5 Safety & UI** | 2주 | ✅ 코어 완료 | ProcessAllowlist + KillSwitch + IrreversibleMatcher + PySide6 미니 GUI (Library/Record/Play/Logs 탭); Player가 step마다 allowlist 체크 | 134 tests |
-| **P6 Standard Agent Tier** | 2–3주 | ⏳ | OpenCUA-7B 또는 Fara-7B 연결, retry/escalation | 긴 체인 태스크 복구율 ≥ 60% |
-| **P7 Mode C Autonomous** | 4주+ | ⏳ | Planner ReAct + RAG + state graph 활용 | 샌드박스 웹 태스크 ≥ 3/5 완주 |
+| **P6 Standard Agent Tier** | 2–3주 | ✅ 코어 완료 | Planner 클래스(ReAct), AutonomousPlayer(Mode C 기초), 모델 스위칭 (`--planner-model`/`--grounder-model`), CLI `autonomous --goal` | 146 tests — planner parser, mode_c done/click+done/max-steps/UIA-vs-Grounder |
+| **P7 Mode C Autonomous (전문화)** | 4주+ | ⏳ | RAG + state graph + retry/escalation 정교화 | 샌드박스 웹 태스크 ≥ 3/5 완주 |
 | **P8 Fine-tuning (옵션)** | 4주+ | ⏳ | 개인 녹화 기반 LoRA (Unsloth SFT) | Grounder 실패율 30% → 15% |
 
 **총 MVP (P0–P5)**: 약 **11–14주 (3–4개월)**

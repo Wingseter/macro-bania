@@ -5,17 +5,20 @@
   - :mod:`grounder`   — 스크린샷 + 타깃 서술 → bbox
   - :mod:`captioner`  — 이벤트 + 프레임 → semantic Step (Phase 2)
   - :mod:`verifier`   — 스크린샷 + 질문 → yes/no (Phase 3)
-  - (Phase 6) planner
+  - :mod:`planner`    — goal + screenshot + history → next action (Phase 6)
 """
 from macrobania.agent.captioner import CandidateStep, Captioner, rule_based_step
 from macrobania.agent.client import VLMClient
 from macrobania.agent.grounder import Grounder
+from macrobania.agent.planner import Planner, PlannerDecision
 from macrobania.agent.verifier import Verifier
 
 __all__ = [
     "CandidateStep",
     "Captioner",
     "Grounder",
+    "Planner",
+    "PlannerDecision",
     "VLMClient",
     "Verifier",
     "rule_based_step",
