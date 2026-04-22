@@ -1,0 +1,132 @@
+# ============================================================
+# macro-bania — .gitignore
+# ============================================================
+# 주의: 이 프로젝트의 idea/ 폴더는 사용자 데이터(codex/gemini 계획서)이며
+# JetBrains의 .idea/ 와는 다르다. .idea/ 는 무시하고 idea/ 는 추적한다.
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+dist/
+build/
+wheels/
+pip-wheel-metadata/
+.Python
+
+# --- 가상환경 ---
+venv/
+.venv/
+env/
+ENV/
+
+# --- 빌드/배포 ---
+*.manifest
+*.spec
+pyinstaller-dist/
+pyinstaller-build/
+
+# --- 환경변수/비밀 ---
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets/
+credentials.json
+
+# --- 모델 가중치 (대용량) ---
+models/
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.onnx
+*.ckpt
+
+# --- 녹화 데이터 (사용자 개인정보 포함 가능) ---
+recordings/
+frames/
+crops/
+traces/
+*.trace
+*.trace.json
+
+# --- 로컬 DB ---
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.db
+*.db-journal
+
+# --- 이미지/비디오 (녹화 산출물) ---
+# 루트 문서용 이미지는 docs/ 에 두고 예외 처리 권장
+*.webp
+*.mp4
+*.mkv
+# 샘플 스크린샷은 docs/assets/ 아래에만 허용
+!docs/assets/**/*.webp
+!docs/assets/**/*.png
+
+# --- 로그 ---
+*.log
+logs/
+audit/
+
+# --- 테스트/린트 캐시 ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.hypothesis/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# --- 에디터/IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.spyderproject
+.spyproject
+
+# --- OS ---
+Thumbs.db
+Thumbs.db:encryptable
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# --- Windows 단축키/설정 ---
+*.lnk
+
+# --- 로컬 임시 ---
+tmp/
+temp/
+scratch/
+*.tmp
+*.bak
+*.old
+
+# --- 프로젝트별 ---
+# Claude Code 로컬 설정(있다면 개인별)
+.claude/settings.local.json
+
+# LocalHost 모델 캐시
+.cache/
+hf_cache/
+ollama_models/
