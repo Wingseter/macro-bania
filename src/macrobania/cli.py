@@ -319,17 +319,15 @@ def play(
         raise click.ClickException(f"recording directory not found: {rec_dir}")
 
     mode_l = mode.lower()
-    if mode_l in ("b", "c"):
-        raise click.ClickException(
-            f"mode {mode_l!r} not implemented yet (Phase {4 if mode_l == 'b' else 6})"
-        )
+    if mode_l == "c":
+        raise click.ClickException("mode 'c' not implemented yet (Phase 6)")
 
     injector = make_injector(dry_run=dry_run)
     failsafe = FailSafe()
     session = PlaySession(
         db=get_db(),
         recording_id=recording_id,
-        mode="a",
+        mode=mode_l,  # type: ignore[arg-type]
         injector=injector,
         failsafe=failsafe,
     )
@@ -343,14 +341,44 @@ def play(
                 f"[yellow]verifier init failed ({e}); continuing without verification[/yellow]"
             )
 
-    player = FaithfulPlayer(
-        session=session, rec_dir=rec_dir, verifier=verifier, speed=speed
-    )
-    _console.print(
-        f"[green]playing[/green] rec={recording_id} mode=a speed={speed:.2f} "
-        f"dry_run={dry_run} verify={bool(verifier)}"
-    )
-    result = player.play()
+    if mode_l == "a":
+        player_a = FaithfulPlayer(
+            session=session, rec_dir=rec_dir, verifier=verifier, speed=speed
+        )
+        _console.print(
+            f"[green]playing[/green] rec={recording_id} mode=a speed={speed:.2f} "
+            f"dry_run={dry_run} verify={bool(verifier)}"
+        )
+        result = player_a.play()
+    else:
+        from macrobania.agent.grounder import Grounder
+        from macrobania.perception import OCREngine, UIASnapshotter
+        from macrobania.player import GroundedPlayer
+
+        try:
+            grounder = Grounder.from_env()
+        except Exception as e:
+            raise click.ClickException(
+                f"Grounder init failed (Ollama 실행 중인지 확인): {e}"
+            ) from e
+
+        uia = UIASnapshotter()
+        ocr = OCREngine()
+        player_b = GroundedPlayer(
+            session=session,
+            rec_dir=rec_dir,
+            grounder=grounder,
+            verifier=verifier,
+            uia=uia if uia.available() else None,
+            ocr=ocr if ocr.available() else None,
+        )
+        _console.print(
+            f"[green]playing[/green] rec={recording_id} mode=b dry_run={dry_run} "
+            f"uia={player_b.uia is not None} ocr={player_b.ocr is not None} "
+            f"verify={bool(verifier)}"
+        )
+        result = player_b.play()
+
     success = sum(1 for o in result.outcomes if o.status == "success")
     status = "[green]SUCCESS[/green]" if not result.failed else "[red]FAILED[/red]"
     _console.print(

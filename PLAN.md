@@ -645,7 +645,7 @@ OCR top-5: 일일퀘스트, 로그아웃, 설정, ...
 | **P1 Recorder** | 2–3주 | ✅ 코어 완료 | DXcam/MSS + pynput + UIA + OCR + SQLite writer + RecordingSession + CLI record/inspect | 65 tests pass (프레임 diff/PII/writer 검증) |
 | **P2 Trace Viewer + Semanticizer** | 2주 | ✅ 코어 완료 | Captioner(Qwen3.5-0.8B) + rule-based fallback, event clustering, HTML viewer, CLI semanticize/export-html | 79 tests (classify/cluster/semanticize/viewer 검증) |
 | **P3 Mode A Faithful** | 1주 | ✅ 코어 완료 | DryRun/Real injector, Verifier, FaithfulPlayer, PlaySession(+audit_log), CLI play --mode a | 97 tests (injector/verifier/mode_a 통합 검증) |
-| **P4 Mode B Grounded ★** | 3주 | ⏳ | Hybrid matcher + Grounder + Verifier + Dry Run UI | 창 위치/해상도 랜덤화해도 동일 태스크 ≥ 16/20 |
+| **P4 Mode B Grounded ★** | 3주 | ✅ 코어 완료 | perception.matcher (UIA+OCR 감축), GroundingCache (pixel-diff), GroundedPlayer, CLI play --mode b | 115 tests — UIA/OCR skip Grounder, fallback to VLM, cache reuse 검증 |
 | **P5 Safety & UI** | 2주 | ⏳ | PySide6 GUI, 프로세스 화이트리스트, kill switch, audit log, PII | 비개발자 5명 사용성 테스트 통과 |
 | **P6 Standard Agent Tier** | 2–3주 | ⏳ | OpenCUA-7B 또는 Fara-7B 연결, retry/escalation | 긴 체인 태스크 복구율 ≥ 60% |
 | **P7 Mode C Autonomous** | 4주+ | ⏳ | Planner ReAct + RAG + state graph 활용 | 샌드박스 웹 태스크 ≥ 3/5 완주 |
