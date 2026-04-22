@@ -291,14 +291,73 @@ def export_html(recording_id: str, out_path: Path | None) -> None:
     _console.print(f"[green]wrote[/green] {out_path}")
 
 
-@main.command(help="녹화를 재생한다. (Phase 3+)")
+@main.command(help="녹화를 재생한다.")
 @click.argument("recording_id")
-@click.option("--mode", type=click.Choice(["a", "b", "c"], case_sensitive=False), default="b")
-@click.option("--dry-run/--execute", default=True)
-@click.option("--speed", default=1.0, type=float)
-def play(recording_id: str, mode: str, dry_run: bool, speed: float) -> None:
-    _ = recording_id, mode, dry_run, speed
-    raise click.ClickException("Phase 3+ 미구현")
+@click.option("--mode", type=click.Choice(["a", "b", "c"], case_sensitive=False), default="a")
+@click.option("--dry-run/--execute", default=True, help="기본은 dry-run (실제 입력 주입 X)")
+@click.option("--speed", default=1.0, type=click.FloatRange(0.25, 4.0))
+@click.option(
+    "--no-verify",
+    is_flag=True,
+    default=False,
+    help="precondition/postcondition 검증 스킵 (VLM 호출 없음)",
+)
+def play(
+    recording_id: str,
+    mode: str,
+    dry_run: bool,
+    speed: float,
+    no_verify: bool,
+) -> None:
+    from macrobania.agent.verifier import Verifier
+    from macrobania.inputio import FailSafe, make_injector
+    from macrobania.player import FaithfulPlayer, PlaySession
+
+    settings = get_settings()
+    rec_dir = settings.recordings_dir / recording_id
+    if not rec_dir.exists():
+        raise click.ClickException(f"recording directory not found: {rec_dir}")
+
+    mode_l = mode.lower()
+    if mode_l in ("b", "c"):
+        raise click.ClickException(
+            f"mode {mode_l!r} not implemented yet (Phase {4 if mode_l == 'b' else 6})"
+        )
+
+    injector = make_injector(dry_run=dry_run)
+    failsafe = FailSafe()
+    session = PlaySession(
+        db=get_db(),
+        recording_id=recording_id,
+        mode="a",
+        injector=injector,
+        failsafe=failsafe,
+    )
+
+    verifier: Verifier | None = None
+    if not no_verify:
+        try:
+            verifier = Verifier.from_env()
+        except Exception as e:
+            _console.print(
+                f"[yellow]verifier init failed ({e}); continuing without verification[/yellow]"
+            )
+
+    player = FaithfulPlayer(
+        session=session, rec_dir=rec_dir, verifier=verifier, speed=speed
+    )
+    _console.print(
+        f"[green]playing[/green] rec={recording_id} mode=a speed={speed:.2f} "
+        f"dry_run={dry_run} verify={bool(verifier)}"
+    )
+    result = player.play()
+    success = sum(1 for o in result.outcomes if o.status == "success")
+    status = "[green]SUCCESS[/green]" if not result.failed else "[red]FAILED[/red]"
+    _console.print(
+        f"{status} session={result.session_id} "
+        f"steps={len(result.outcomes)} success={success} "
+        + (f"reason={result.failure_reason!r}" if result.failed else "")
+    )
 
 
 @main.command(help="현재 설정을 JSON으로 출력 (자동화용)")
