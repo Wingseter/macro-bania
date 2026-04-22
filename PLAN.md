@@ -87,28 +87,45 @@
 
 ---
 
-## 4. 현재 코드베이스 상태 (2026-04-22)
+## 4. 현재 코드베이스 상태
 
-> Codex 초안은 `data_logger.py`가 존재한다고 가정했으나, `git log` 확인 결과 현 저장소에는 간단한 `main.cpp`/`main.py` 정렬 데모만 있었고 둘 다 지워진 상태다. **실질적으로 빈 저장소에서 출발한다.**
+### 2026-04-22 P0 스캐폴딩 완료 스냅샷
 
-### 시작 시점 자산
+| 영역 | 상태 | 비고 |
+|---|---|---|
+| 레포 초기화 (`.gitignore`, `README.md`, `pyproject.toml`) | ✅ | Apache-2.0, Python 3.11+, uv/hatch |
+| 패키지 스켈레톤 (`src/macrobania/`) | ✅ | `agent`, `capture`, `inputio`, `perception`, `recording`, `player`, `safety`, `storage` |
+| Config/Settings (`config.py`) | ✅ | pydantic-settings, `MACROBANIA_*` env 오버라이드 |
+| 데이터 모델 (`models.py`) | ✅ | PLAN §10 전체 스키마 Pydantic 표현 |
+| SQLite 스토리지 (`storage/`) | ✅ | DDL v1, WAL 모드, 트랜잭션 헬퍼 |
+| VLM 클라이언트 (`agent/client.py`) | ✅ | OpenAI-호환, 이미지 base64 인코딩 |
+| Grounder (`agent/grounder.py`) | ✅ | Qwen3-VL 0-1000 bbox 관대 파서 |
+| 프롬프트 (`agent/prompts.py`) | ✅ | Grounder/Verifier 시스템 + user 포맷 |
+| PII 스크러버 (`safety/pii.py`) | ✅ | email/card/RRN/phone/IP/API key |
+| 로깅 (`logging.py`) | ✅ | structlog + 감사 로그 분리 |
+| CLI (`cli.py`) | ✅ | `info`, `doctor`, `config-dump` 동작. `record/inspect/semanticize/play`는 Phase 스텁 |
+| P0 Spike (`scripts/spike_grounding.py`) | ✅ | Ollama 연결 시 bbox 출력, 부재 시 안내 종료 |
+| 설계 문서 (`docs/design/recorder.md`) | ✅ | Phase 1 착수 준비 |
+| ADR (`docs/adr/0001-three-ai-synthesis.md`) | ✅ | 본 통합 결정 영구 보존 |
+| 테스트 (`tests/`) | ✅ | **45 passed, coverage 78%**, ruff 클린 |
+
+Phase 1(Recorder) 실제 구현부터 사용자 기능이 시작된다.
+
+### 현 시점 자산
 ```
 E:\Workspace\2026\macro-bania\
-├── .git/
-├── claude/PLAN.md
-├── idea/
-│   ├── codex/PLAN.md
-│   └── gemini/implementation_plan.md
-├── PLAN.md           ← 이 파일 (통합본)
-└── venv/             (Python venv만 셋업됨)
+├── .git/ · .gitignore · PLAN.md · README.md · pyproject.toml
+├── src/macrobania/   (agent, capture, inputio, perception, recording, player, safety, storage 등)
+├── scripts/          (spike_grounding.py)
+├── tests/            (7 files, 45 tests)
+├── docs/
+│   ├── adr/0001-three-ai-synthesis.md
+│   └── design/recorder.md
+├── claude/PLAN.md              ← 원본 Claude 초안
+├── idea/codex/PLAN.md          ← 원본 Codex 초안
+├── idea/gemini/implementation_plan.md
+└── venv/                        (gitignored)
 ```
-
-### Phase 0 착수 전 필요 작업
-1. `pyproject.toml` 생성 (uv 관리)
-2. `src/macrobania/` 패키지 스켈레톤
-3. `.gitignore` (venv/, models/, recordings/, *.webp 등)
-4. `README.md` (경고 포함)
-5. `docs/adr/0001-three-ai-synthesis.md` — 이 통합 결정 근거 기록
 
 ---
 
@@ -622,17 +639,17 @@ OCR top-5: 일일퀘스트, 로그아웃, 설정, ...
 
 **1인 개발자 기준, 주 단위 추정. 통합본은 Codex 단순성 + Claude 세분성 절충.**
 
-| Phase | 기간 | 산출물 | 완료 조건 (KPI) |
-|---|---|---|---|
-| **P0 Spike** | 1주 | Ollama + Qwen3-VL-2B 띄우고 스크린샷 → bbox 데모 노트북 | 단일 grounding 요청 < 1.5s, 체감 정확도 ≥ 80% |
-| **P1 Recorder** | 2–3주 | Capture + UIA + OCR + Input Listener + SQLite | 1시간 녹화 크래시 0회, 프레임 드롭 < 1%, UIA/OCR snapshot 수집됨 |
-| **P2 Trace Viewer + Semanticizer** | 2주 | Captioner 배치 (Qwen3.5-0.8B), 웹 기반 뷰어, Editor | 20개 녹화 Step caption 수동 수정량 < 20% |
-| **P3 Mode A Faithful** | 1주 | Faithful Replay + precondition 체크 | 노트패드 열기→쓰기→저장 20회 중 ≥ 18회 |
-| **P4 Mode B Grounded ★** | 3주 | Hybrid matcher + Grounder + Verifier + Dry Run UI | 창 위치/해상도 랜덤화해도 동일 태스크 ≥ 16/20 |
-| **P5 Safety & UI** | 2주 | PySide6 GUI, 프로세스 화이트리스트, kill switch, audit log, PII | 비개발자 5명 사용성 테스트 통과 |
-| **P6 Standard Agent Tier** | 2–3주 | OpenCUA-7B 또는 Fara-7B 연결, retry/escalation | 긴 체인 태스크 복구율 ≥ 60% |
-| **P7 Mode C Autonomous** | 4주+ | Planner ReAct + RAG + state graph 활용 | 샌드박스 웹 태스크 ≥ 3/5 완주 |
-| **P8 Fine-tuning (옵션)** | 4주+ | 개인 녹화 기반 LoRA (Unsloth SFT) | Grounder 실패율 30% → 15% |
+| Phase | 기간 | 상태 | 산출물 | 완료 조건 (KPI) |
+|---|---|---|---|---|
+| **P0 Spike** | 1주 | 🚧 진행 중 (스캐폴딩 ✅, Ollama 실측 대기) | Ollama + Qwen3-VL-2B 띄우고 스크린샷 → bbox 데모 | 단일 grounding 요청 < 1.5s, 체감 정확도 ≥ 80% |
+| **P1 Recorder** | 2–3주 | ⏳ 대기 | Capture + UIA + OCR + Input Listener + SQLite | 1시간 녹화 크래시 0회, 프레임 드롭 < 1%, UIA/OCR snapshot 수집됨 |
+| **P2 Trace Viewer + Semanticizer** | 2주 | ⏳ | Captioner 배치 (Qwen3.5-0.8B), 웹 기반 뷰어, Editor | 20개 녹화 Step caption 수동 수정량 < 20% |
+| **P3 Mode A Faithful** | 1주 | ⏳ | Faithful Replay + precondition 체크 | 노트패드 열기→쓰기→저장 20회 중 ≥ 18회 |
+| **P4 Mode B Grounded ★** | 3주 | ⏳ | Hybrid matcher + Grounder + Verifier + Dry Run UI | 창 위치/해상도 랜덤화해도 동일 태스크 ≥ 16/20 |
+| **P5 Safety & UI** | 2주 | ⏳ | PySide6 GUI, 프로세스 화이트리스트, kill switch, audit log, PII | 비개발자 5명 사용성 테스트 통과 |
+| **P6 Standard Agent Tier** | 2–3주 | ⏳ | OpenCUA-7B 또는 Fara-7B 연결, retry/escalation | 긴 체인 태스크 복구율 ≥ 60% |
+| **P7 Mode C Autonomous** | 4주+ | ⏳ | Planner ReAct + RAG + state graph 활용 | 샌드박스 웹 태스크 ≥ 3/5 완주 |
+| **P8 Fine-tuning (옵션)** | 4주+ | ⏳ | 개인 녹화 기반 LoRA (Unsloth SFT) | Grounder 실패율 30% → 15% |
 
 **총 MVP (P0–P5)**: 약 **11–14주 (3–4개월)**
 **Standard Tier (P6 포함)**: 약 **4–5개월**
@@ -690,17 +707,22 @@ OCR top-5: 일일퀘스트, 로그아웃, 설정, ...
 
 ---
 
-## 18. 지금 바로 해야 할 일 (승인 후 1주차)
+## 18. 지금 바로 해야 할 일
 
-1. `pyproject.toml` + `src/macrobania/` 스켈레톤 생성 (uv)
-2. `docs/adr/0001-three-ai-synthesis.md` — 본 통합 결정 영구 보존
-3. `README.md` 작성 (경고·라이선스·스코프)
-4. P0 Spike:
-   - Ollama 설치 스크립트
-   - Qwen3-VL-2B 다운로드
-   - `scripts/spike_grounding.py` — 스크린샷 1장 → bbox 출력 노트북
-5. CLI 스켈레톤: `macrobania record`, `macrobania inspect`, `macrobania semanticize`, `macrobania play --dry-run`
-6. Phase 1 세부 설계 문서(`docs/design/recorder.md`) — capture/perception/storage 인터페이스 확정
+### 완료 (2026-04-22)
+- [x] `pyproject.toml` + `src/macrobania/` 스켈레톤 (uv)
+- [x] `docs/adr/0001-three-ai-synthesis.md`
+- [x] `README.md` (경고·라이선스·스코프)
+- [x] `scripts/spike_grounding.py` (Ollama 엔드포인트 설치 시 실행 가능)
+- [x] CLI 스켈레톤 (`info`/`doctor` 실동작, `record/inspect/semanticize/play` Phase 스텁)
+- [x] `docs/design/recorder.md`
+- [x] Foundation: config / models / storage / logging / PII
+- [x] 단위 테스트 45/45 통과 (커버리지 78%)
+
+### 다음 1주차
+1. 실사용자 머신에서 `ollama serve` + `ollama pull qwen3-vl:2b` 후 `scripts/spike_grounding.py` 10회 측정 → **ADR-0003 Grounder 기본값** 결정
+2. 대안 모델 벤치: UI-Venus-1.5-2B GGUF 변환·실측
+3. Phase 1 구현 착수: `capture/dxcam_backend.py`, `inputio/listener.py`
 
 ---
 
