@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import platform
 import sys
+from pathlib import Path
 
 import click
 from rich.console import Console
@@ -218,12 +219,76 @@ def inspect(recording_id: str | None, list_all: bool, fmt: str) -> None:
     _console.print(f"  duration:   {summary.duration_ms} ms")
 
 
-@main.command(help="녹화를 의미 단위(Step)로 변환한다. (Phase 2)")
+@main.command(help="녹화를 의미 단위(Step)로 변환한다.")
 @click.argument("recording_id")
 @click.option("--model", default=None, help="Captioner 모델 override")
-def semanticize(recording_id: str, model: str | None) -> None:
-    _ = recording_id, model
-    raise click.ClickException("Phase 2 미구현")
+@click.option(
+    "--no-vlm",
+    is_flag=True,
+    default=False,
+    help="VLM 호출 없이 룰 기반 캡션만 사용 (빠르지만 낮은 품질)",
+)
+@click.option(
+    "--cluster-window",
+    default=1.5,
+    type=float,
+    help="이벤트 클러스터링 시간 창 (초)",
+)
+def semanticize(
+    recording_id: str, model: str | None, no_vlm: bool, cluster_window: float
+) -> None:
+    from macrobania.agent.captioner import Captioner
+    from macrobania.recording import BuilderConfig
+    from macrobania.recording import semanticize as do_semanticize
+
+    settings = get_settings()
+    rec_dir = settings.recordings_dir / recording_id
+    if not rec_dir.exists():
+        raise click.ClickException(f"recording directory not found: {rec_dir}")
+
+    db = get_db()
+    cfg = BuilderConfig(cluster_window_ns=int(cluster_window * 1e9))
+
+    captioner: Captioner | None = None
+    use_vlm = not no_vlm
+    if use_vlm:
+        try:
+            captioner = Captioner.from_env()
+            if model:
+                captioner.model = model
+        except Exception as e:
+            _console.print(f"[yellow]captioner init failed ({e}); falling back to rule-based[/yellow]")
+            use_vlm = False
+
+    result = do_semanticize(
+        db=db,
+        rec_id=recording_id,
+        rec_dir=rec_dir,
+        captioner=captioner,
+        cfg=cfg,
+        use_vlm=use_vlm,
+    )
+    _console.print(
+        f"[green]done[/green] rec={result.recording_id} "
+        f"candidates={result.candidate_count} steps={result.step_count} "
+        f"vlm={'yes' if use_vlm else 'no'}"
+    )
+
+
+@main.command(help="녹화를 HTML 뷰어로 익스포트")
+@click.argument("recording_id")
+@click.option("--out", "out_path", type=click.Path(path_type=Path), default=None)
+def export_html(recording_id: str, out_path: Path | None) -> None:
+    from macrobania.recording import export_html as do_export
+
+    settings = get_settings()
+    rec_dir = settings.recordings_dir / recording_id
+    if not rec_dir.exists():
+        raise click.ClickException(f"recording directory not found: {rec_dir}")
+
+    out_path = out_path or (rec_dir / "viewer.html")
+    do_export(db=get_db(), rec_id=recording_id, rec_dir=rec_dir, out_path=out_path)
+    _console.print(f"[green]wrote[/green] {out_path}")
 
 
 @main.command(help="녹화를 재생한다. (Phase 3+)")

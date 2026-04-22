@@ -643,7 +643,7 @@ OCR top-5: 일일퀘스트, 로그아웃, 설정, ...
 |---|---|---|---|---|
 | **P0 Spike** | 1주 | 🚧 진행 중 (스캐폴딩 ✅, Ollama 실측 대기) | Ollama + Qwen3-VL-2B 띄우고 스크린샷 → bbox 데모 | 단일 grounding 요청 < 1.5s, 체감 정확도 ≥ 80% |
 | **P1 Recorder** | 2–3주 | ✅ 코어 완료 | DXcam/MSS + pynput + UIA + OCR + SQLite writer + RecordingSession + CLI record/inspect | 65 tests pass (프레임 diff/PII/writer 검증) |
-| **P2 Trace Viewer + Semanticizer** | 2주 | ⏳ | Captioner 배치 (Qwen3.5-0.8B), 웹 기반 뷰어, Editor | 20개 녹화 Step caption 수동 수정량 < 20% |
+| **P2 Trace Viewer + Semanticizer** | 2주 | ✅ 코어 완료 | Captioner(Qwen3.5-0.8B) + rule-based fallback, event clustering, HTML viewer, CLI semanticize/export-html | 79 tests (classify/cluster/semanticize/viewer 검증) |
 | **P3 Mode A Faithful** | 1주 | ⏳ | Faithful Replay + precondition 체크 | 노트패드 열기→쓰기→저장 20회 중 ≥ 18회 |
 | **P4 Mode B Grounded ★** | 3주 | ⏳ | Hybrid matcher + Grounder + Verifier + Dry Run UI | 창 위치/해상도 랜덤화해도 동일 태스크 ≥ 16/20 |
 | **P5 Safety & UI** | 2주 | ⏳ | PySide6 GUI, 프로세스 화이트리스트, kill switch, audit log, PII | 비개발자 5명 사용성 테스트 통과 |
