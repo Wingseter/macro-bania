@@ -13,7 +13,6 @@ from __future__ import annotations
 import json
 import platform
 import sys
-from pathlib import Path
 
 import click
 from rich.console import Console
@@ -23,6 +22,8 @@ from macrobania import __version__
 from macrobania.agent.client import VLMClient
 from macrobania.config import get_settings
 from macrobania.logging import configure_logging
+from macrobania.recording import RecordingRepo, RecordingSession
+from macrobania.recording.session import RecorderConfig
 from macrobania.storage import get_db
 
 _console = Console()
@@ -123,22 +124,98 @@ def doctor() -> None:
 # ---------------------------------------------------------------------------
 
 
-@main.command(help="데스크톱 행동을 녹화한다. (Phase 1)")
-@click.option("--task-name", required=True)
-@click.option("--description", default="")
-@click.option("--output-dir", type=click.Path(path_type=Path), default=None)
-def record(task_name: str, description: str, output_dir: Path | None) -> None:
-    _ = description, output_dir
-    _console.print(f"[yellow]stub[/yellow] record: task={task_name!r}")
-    raise click.ClickException("Phase 1 미구현 — src/macrobania/recording/ 가 곧 추가됨")
+@main.command(help="데스크톱 행동을 녹화한다. Ctrl+C 로 종료.")
+@click.option("--task-name", required=True, help="녹화 이름")
+@click.option("--description", default="", help="태스크 설명")
+@click.option(
+    "--target-process",
+    default=None,
+    help="대상 프로세스 이름 (예: chrome.exe). 재생 시 화이트리스트로 사용",
+)
+@click.option("--fps", default=6, type=click.IntRange(1, 30))
+@click.option("--duration", default=None, type=float, help="자동 종료까지 초 (미지정 시 Ctrl+C)")
+def record(
+    task_name: str,
+    description: str,
+    target_process: str | None,
+    fps: int,
+    duration: float | None,
+) -> None:
+    import signal
+    import threading
+
+    session = RecordingSession(
+        task_name=task_name,
+        description=description,
+        target_process=target_process,
+        cfg=RecorderConfig(capture_fps=fps),
+    )
+
+    def _sig(_signum: int, _frame: object) -> None:
+        _console.print("\n[yellow]stopping...[/yellow]")
+        session.stop()
+
+    signal.signal(signal.SIGINT, _sig)
+    if duration is not None:
+        threading.Timer(duration, session.stop).start()
+
+    _console.print(
+        f"[green]recording[/green] task={task_name!r} fps={fps}"
+        + (f" duration={duration}s" if duration else " (Ctrl+C to stop)")
+    )
+    rec = session.run()
+    _console.print(
+        f"[green]done[/green] id={rec.id} frames={rec.frame_count} "
+        f"events={rec.event_count} duration_ms={rec.duration_ms}"
+    )
 
 
-@main.command(help="녹화를 검사한다. (Phase 1)")
-@click.argument("recording_id")
+@main.command(help="녹화를 검사한다.")
+@click.argument("recording_id", required=False)
+@click.option("--list", "list_all", is_flag=True, help="전체 녹화 목록 표시")
 @click.option("--format", "fmt", type=click.Choice(["json", "text"]), default="text")
-def inspect(recording_id: str, fmt: str) -> None:
-    _ = recording_id, fmt
-    raise click.ClickException("Phase 1 미구현")
+def inspect(recording_id: str | None, list_all: bool, fmt: str) -> None:
+    repo = RecordingRepo(db=get_db())
+    if list_all or not recording_id:
+        rows = repo.list()
+        if fmt == "json":
+            import dataclasses as _dc
+
+            _console.print_json(
+                json.dumps([_dc.asdict(r) for r in rows], default=str)
+            )
+        else:
+            table = Table(title="recordings")
+            table.add_column("id")
+            table.add_column("task")
+            table.add_column("frames", justify="right")
+            table.add_column("events", justify="right")
+            table.add_column("duration_ms", justify="right")
+            for r in rows:
+                table.add_row(
+                    r.id, r.task_name, str(r.frame_count), str(r.event_count), str(r.duration_ms)
+                )
+            _console.print(table)
+        return
+
+    summary = repo.get(recording_id)
+    if summary is None:
+        raise click.ClickException(f"no such recording: {recording_id}")
+    if fmt == "json":
+        import dataclasses as _dc
+
+        _console.print_json(json.dumps(_dc.asdict(summary), default=str))
+        return
+    _console.print(f"[bold]{summary.id}[/bold]")
+    _console.print(f"  task:       {summary.task_name}")
+    _console.print(f"  description: {summary.description}")
+    _console.print(f"  created:    {summary.created_at}")
+    _console.print(f"  resolution: {summary.resolution[0]}x{summary.resolution[1]} @ {summary.dpi_scale:.2f}x")
+    _console.print(f"  target:     {summary.target_process}")
+    _console.print(f"  frames:     {summary.frame_count}")
+    _console.print(f"  events:     {summary.event_count}")
+    _console.print(f"  steps:      {summary.step_count}")
+    _console.print(f"  duration:   {summary.duration_ms} ms")
 
 
 @main.command(help="녹화를 의미 단위(Step)로 변환한다. (Phase 2)")

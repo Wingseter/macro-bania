@@ -1,9 +1,16 @@
-"""Hybrid Perception — UIA + OCR + Screenshot (Phase 1+).
+"""Hybrid Perception — UIA + OCR + Screenshot.
 
-PLAN.md §9.2 에 따라 VLM 호출 전 후보를 좁히는 matcher를 제공한다.
-
-예정 구현:
-  - :mod:`uia`      — pywinauto / uiautomation 래퍼
-  - :mod:`ocr`      — RapidOCR 래퍼
-  - :mod:`matcher`  — UIA/OCR 후보 → Grounder 입력 목록
+ - :mod:`uia` : pywinauto UIA 트리 스냅샷 (Windows only)
+ - :mod:`ocr` : RapidOCR ONNX 래퍼 (있을 때만)
 """
+from __future__ import annotations
+
+from macrobania.perception.ocr import OCREngine, OCRUnavailableError
+from macrobania.perception.uia import UIASnapshotter, UIAUnavailableError
+
+__all__ = [
+    "OCREngine",
+    "OCRUnavailableError",
+    "UIASnapshotter",
+    "UIAUnavailableError",
+]

@@ -1,7 +1,19 @@
-"""녹화 서브시스템 (Phase 1+).
+"""녹화 서브시스템.
 
-예정 구현:
-  - :mod:`session`   — Recording 생성/마감, 런타임 상태
-  - :mod:`builder`   — raw event → semantic Step 배치 변환 (Captioner 활용)
-  - :mod:`viewer`    — 간단한 trace 뷰어 (웹 또는 PySide6)
+ - :mod:`writer`  — SQLite + WebP 프레임 저장
+ - :mod:`session` — 캡처·입력·UIA·OCR 조율하여 1회 녹화 수행
+ - :mod:`repo`    — 녹화 조회/검사
+ - :mod:`builder` — (Phase 2) raw event → semantic Step
 """
+from __future__ import annotations
+
+from macrobania.recording.repo import RecordingRepo, RecordingSummary
+from macrobania.recording.session import RecordingSession
+from macrobania.recording.writer import RecordingWriter
+
+__all__ = [
+    "RecordingRepo",
+    "RecordingSession",
+    "RecordingSummary",
+    "RecordingWriter",
+]

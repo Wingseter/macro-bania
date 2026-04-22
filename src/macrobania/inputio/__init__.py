@@ -1,7 +1,16 @@
-"""입력 이벤트 리스너 + 주입 (Phase 1+).
+"""입력 이벤트 리스너 + 주입.
 
-예정 구현:
-  - :mod:`listener`  — pynput 기반 전역 훅 (키보드/마우스)
-  - :mod:`injector`  — pydirectinput 기반 scan code 주입
-  - :mod:`failsafe`  — 좌상단 FAILSAFE, 전역 kill-switch hotkey
+ - :class:`InputListener` — pynput 기반 전역 훅. RawEvent를 queue로 스트림.
+ - :class:`FailSafe` — 좌상단 이동 + 전역 kill-switch
+ - :class:`InputInjector` — (Phase 3) SendInput/pydirectinput 주입 [아직 미구현]
 """
+from __future__ import annotations
+
+from macrobania.inputio.failsafe import FailSafe, FailSafeTripped
+from macrobania.inputio.listener import InputListener
+
+__all__ = [
+    "FailSafe",
+    "FailSafeTripped",
+    "InputListener",
+]

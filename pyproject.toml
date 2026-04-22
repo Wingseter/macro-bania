@@ -74,6 +74,7 @@ dev = [
     "pytest>=8.1",
     "pytest-asyncio>=0.23",
     "pytest-cov>=5.0",
+    "pytest-timeout>=2.3",
     "ruff>=0.4",
     "mypy>=1.10",
     "ipykernel>=6.29",
@@ -120,7 +121,7 @@ files = ["src/macrobania"]
 # --- Pytest ---
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra --strict-markers --cov=macrobania --cov-report=term-missing"
+addopts = "-ra --strict-markers --cov=macrobania --cov-report=term-missing --timeout=20"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 
