@@ -81,6 +81,16 @@ class FaithfulPlayer:
     def _play_step(self, step: Step) -> StepOutcome:
         self.session.audit_step_start(step)
 
+        # 프로세스 allowlist 체크
+        try:
+            self.session.check_allowlist()
+        except Exception as e:  # ProcessNotAllowedError
+            return StepOutcome(
+                step_index=step.index,
+                status="failed",
+                reason=f"allowlist: {e}",
+            )
+
         # precondition 확인
         if step.precondition and self.verifier is not None:
             ok = self._check_condition(step.precondition)

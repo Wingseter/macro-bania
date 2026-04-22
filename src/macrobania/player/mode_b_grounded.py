@@ -98,6 +98,15 @@ class GroundedPlayer:
     def _play_step(self, step: Step) -> StepOutcome:
         self.session.audit_step_start(step)
 
+        try:
+            self.session.check_allowlist()
+        except Exception as e:  # ProcessNotAllowedError
+            return StepOutcome(
+                step_index=step.index,
+                status="failed",
+                reason=f"allowlist: {e}",
+            )
+
         # precondition 확인
         if (
             step.precondition

@@ -395,5 +395,12 @@ def config_dump() -> None:
     _console.print_json(json.dumps(data, default=str))
 
 
+@main.command(help="PySide6 GUI 실행 (Phase 5)")
+def gui() -> None:
+    from macrobania.ui import run_gui
+
+    sys.exit(run_gui())
+
+
 if __name__ == "__main__":
     main()

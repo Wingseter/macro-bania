@@ -15,6 +15,11 @@ from macrobania.inputio.failsafe import FailSafe
 from macrobania.inputio.injector import Injector
 from macrobania.logging import get_audit_logger, get_logger
 from macrobania.models import Step
+from macrobania.safety.process_allowlist import (
+    ProcessAllowlist,
+    ProcessNotAllowedError,
+    active_window_process,
+)
 from macrobania.storage import Database
 
 log = get_logger(__name__)
@@ -51,6 +56,7 @@ class PlaySession:
     mode: Literal["a", "b", "c"]
     injector: Injector
     failsafe: FailSafe
+    allowlist: ProcessAllowlist | None = None
     session_id: str = field(default_factory=lambda: f"ses_{uuid.uuid4().hex[:12]}")
     _started_at: float = field(default_factory=time.time, init=False, repr=False)
     _file_logger: object | None = field(default=None, init=False, repr=False)
@@ -124,6 +130,20 @@ class PlaySession:
 
     def audit_step_start(self, step: Step) -> None:
         self._audit("step_start", step_index=step.index, action=step.action.type.value)
+
+    def check_allowlist(self) -> None:
+        """허용 프로세스 검증. 미준수 시 :class:`ProcessNotAllowedError`."""
+        if self.allowlist is None or not self.allowlist.enabled:
+            return
+        proc = active_window_process()
+        if not proc:
+            # 탐지 실패 시 조용히 통과 (cross-platform / perm 이슈)
+            return
+        if not self.allowlist.is_allowed(proc):
+            self._audit("process_mismatch", active=proc, allowed=self.allowlist.names)
+            raise ProcessNotAllowedError(
+                f"active process {proc!r} not in allowlist {self.allowlist.names!r}"
+            )
 
     def audit_step_end(self, outcome: StepOutcome) -> None:
         self._audit(
